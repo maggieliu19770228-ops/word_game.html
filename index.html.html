@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學習英文小天地 🌟</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Comic Sans MS', 'Microsoft JhengHei', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 { color: #ff6b6b; margin-bottom: 10px; font-size: 28px; }
+        .mode-switch {
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: #4dabf7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 5px;
+            transition: 0.2s;
+            font-weight: bold;
+        }
+        .btn:hover { background-color: #339af0; transform: scale(1.05); }
+        .btn.active { background-color: #f06595; }
+        
+        /* 學習卡片區樣式 */
+        .card {
+            background: #f8f9fa;
+            border: 4px dashed #ff8787;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .emoji { font-size: 64px; margin-bottom: 10px; display: none; } /* 如果沒有圖案就隱藏 */
+        .word { font-size: 36px; font-weight: bold; color: #212529; margin: 10px 0; }
+        .meaning { font-size: 22px; color: #868e96; margin-bottom: 20px; }
+        .speak-btn {
+            background-color: #ffd43b;
+            color: #343a40;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .speak-btn:hover { background-color: #fcc419; }
+
+        /* 測驗區樣式 */
+        .quiz-box { display: none; }
+        .question-text { font-size: 22px; color: #343a40; margin-bottom: 20px; font-weight: bold; }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .option-btn {
+            background-color: #e7f5ff;
+            border: 2px solid #74c0fc;
+            color: #1c7ed6;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .option-btn:hover { background-color: #d0ebff; }
+        .score-board { font-size: 18px; color: #2b8a3e; font-weight: bold; margin-top: 15px; }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌟 學習英文小天地 🌟</h1>
+    
+    <!-- 切換模式按鈕 -->
+    <div class="mode-switch">
+        <button class="btn active" id="btn-learn" onclick="switchMode('learn')">📖 單字學習</button>
+        <button class="btn" id="btn-quiz" onclick="switchMode('quiz')">🎮 趣味測驗</button>
+    </div>
+
+    <!-- 1. 單字學習介面 -->
+    <div id="learn-section">
+        <div class="card">
+            <div class="emoji" id="l-emoji"></div>
+            <div class="word" id="l-word">Green Salad</div>
+            <div class="meaning" id="l-meaning">綠色沙拉</div>
+            <button class="speak-btn" onclick="speakCurrentWord()">🔊 聽發音</button>
+        </div>
+        <div class="nav-buttons">
+            <button class="btn" onclick="prevWord()">⬅️ 上一個</button>
+            <span id="l-counter" style="align-self: center; font-weight: bold; color: #495057;">1 / 6</span>
+            <button class="btn" onclick="nextWord()">下一個 ➡️</button>
+        </div>
+    </div>
+
+    <!-- 2. 趣味測驗介面 -->
+    <div id="quiz-section" class="quiz-box">
+        <div class="card">
+            <div class="emoji" id="q-emoji"></div>
+            <!-- 已修正標籤語法並加上 id="q-text" -->
+            <div class="question-text" id="q-text">請問這個中文單字是哪個英文單字呢？</div>
+            <div class="options-grid" id="options-container">
+                <!-- 選項會透過 JavaScript 動態載入 -->
+            </div>
+        </div>
+        <div class="score-board" id="score-text">目前得分：0 分</div>
+        <button class="btn" style="margin-top: 15px; background-color: #8ce99a; color: #2b8a3e;" onclick="nextQuiz()">下一題 🎯</button>
+    </div>
+</div>
+
+<script>
+    // 單字資料庫
+    const wordsData = [
+        { word: "Green Salad", meaning: "綠色沙拉", emoji: "" },
+        { word: "Sandwich", meaning: "三明治", emoji: "" },
+        { word: "Bread", meaning: "麵包", emoji: "" },
+        { word: "Steak", meaning: "牛排", emoji: "" },
+        { word: "Chocolate", meaning: "巧克力", emoji: "" },
+        { word: "Candy", meaning: "糖果", emoji: "" }
+    ];
+
+    let currentLearnIndex = 0;
+    let currentQuizIndex = 0;
+    let score = 0;
+
+    // --- 學習模式邏輯 ---
+    function updateLearnCard() {
+        const item = wordsData[currentLearnIndex];
+        const emojiEl = document.getElementById("l-emoji");
+        
+        if (item.emoji && item.emoji.trim() !== "") {
+            emojiEl.innerText = item.emoji;
+            emojiEl.style.display = "block";
+        } else {
+            emojiEl.style.display = "none";
+        }
+
+        document.getElementById("l-word").innerText = item.word;
+        document.getElementById("l-meaning").innerText = item.meaning;
+        document.getElementById("l-counter").innerText = `${currentLearnIndex + 1} / ${wordsData.length}`;
+    }
+
+    function nextWord() {
+        currentLearnIndex = (currentLearnIndex + 1) % wordsData.length;
+        updateLearnCard();
+    }
+
+    function prevWord() {
+        currentLearnIndex = (currentLearnIndex - 1 + wordsData.length) % wordsData.length;
+        updateLearnCard();
+    }
+
+    function speakCurrentWord() {
+        const word = wordsData[currentLearnIndex].word;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // 停止先前的語音
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = 'en-US'; // 美式英文發音
+            utterance.rate = 0.9;     // 語速放慢
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert("您的瀏覽器不支援語音播放功能！");
+        }
+    }
+
+    // --- 測驗模式邏輯 ---
+    function switchMode(mode) {
+        const learnSec = document.getElementById("learn-section");
+        const quizSec = document.getElementById("quiz-section");
+        const btnLearn = document.getElementById("btn-learn");
+        const btnQuiz = document.getElementById("btn-quiz");
+
+        if (mode === 'learn') {
+            learnSec.style.display = "block";
+            quizSec.style.display = "none";
+            btnLearn.classList.add("active");
+            btnQuiz.classList.remove("active");
+        } else {
+            learnSec.style.display = "none";
+            quizSec.style.display = "block";
+            btnQuiz.classList.add("active");
+            btnLearn.classList.remove("active");
+            loadQuiz();
+        }
+    }
+
+    function loadQuiz() {
+        const qEmojiElement = document.getElementById("q-emoji");
+        qEmojiElement.style.display = "none"; // 隱藏測驗圖片區
+
+        // 隨機選一個題目
+        currentQuizIndex = Math.floor(Math.random() * wordsData.length);
+        const currentItem = wordsData[currentQuizIndex];
+
+        // 設定題目文字為中文意思
+        const qTextEl = document.getElementById("q-text");
+        if (qTextEl) {
+            qTextEl.innerText = `請問「${currentItem.meaning}」的英文單字是什麼？`;
+        }
+
+        // 產生四個英文選項（1個正確 + 3個干擾）
+        let options = [currentItem.word];
+        while (options.length < 4) {
+            let randomWord = wordsData[Math.floor(Math.random() * wordsData.length)].word;
+            if (!options.includes(randomWord)) {
+                options.push(randomWord);
+            }
+        }
+        
+        // 打散選項順序
+        options.sort(() => Math.random() - 0.5);
+
+        // 渲染選項按鈕
+        const container = document.getElementById("options-container");
+        container.innerHTML = "";
+        options.forEach(opt => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, currentItem.word);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, correct) {
+        if (selected === correct) {
+            alert("🎉 太棒了！答對囉！");
+            score += 10;
+            document.getElementById("score-text").innerText = `目前得分：${score} 分`;
+            loadQuiz();
+        } else {
+            alert("😢 哎呀，再試一次看看！");
+        }
+    }
+
+    function nextQuiz() {
+        loadQuiz();
+    }
+
+    // 初始化載入第一張卡片
+    updateLearnCard();
+</script>
+
+</body>
+</>
